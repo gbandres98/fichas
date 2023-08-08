@@ -1,0 +1,42 @@
+\documentclass[11pt, a4paper]{article}
+
+\NeedsTeXFormat{LaTeX2e}
+\RequirePackage[left=1.5cm,right=1.5cm,top=1.5cm,bottom=1.5cm, landscape]{geometry}
+\setlength\parindent{0pt}
+
+\usepackage[spanish,activeacute]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[hidelinks]{hyperref}
+\urlstyle{same}
+
+\begin{document}
+
+        [[range $index, $page := . -]]
+        
+        \begin{minipage}{14cm}
+            \begin{tabular}{|p{3,5cm}|p{9cm}|}
+                \hline
+                \textbf{Ficha [[inc $index]]} & \textbf{} \\ \hline
+                [[range $index, $value := $page.Values -]]
+                
+                [[if lt $index (len $page.Keys) -]]
+                \textbf{[[index $page.Keys $index]]} & [[$value]] \\ \hline
+                [[end -]]                
+                
+                [[end -]]
+        
+            \end{tabular}
+        \end{minipage}
+        \begin{minipage}{12.5 cm}
+            [[if $page.Img -]]
+                \raggedleft
+                \includegraphics[height=18cm, keepaspectratio]{[[$page.Img]]}
+            [[end -]]
+        \end{minipage}
+        \newpage
+        [[end -]]
+ 
+\end{document}
