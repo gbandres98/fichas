@@ -5,12 +5,12 @@ import (
 )
 
 func main() {
-	data, err := fichas.Parse("test/fichas.xlsx")
+	data, err := fichas.Parse("fichas.xlsx")
 	if err != nil {
 		panic(err)
 	}
 
-	err = fichas.Generate("test/t.tex", data)
+	err = fichas.Generate("template.tex", data)
 	if err != nil {
 		panic(err)
 	}

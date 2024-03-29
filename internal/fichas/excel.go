@@ -3,6 +3,7 @@ package fichas
 import (
 	"context"
 	"io"
+	"log"
 	"os"
 	"strings"
 
@@ -28,6 +29,8 @@ func init() {
 }
 
 func Parse(path string) ([]pair, error) {
+	log.Println("Leyendo excel...")
+
 	data := []pair{}
 
 	f, err := excelize.OpenFile(path)
@@ -64,9 +67,11 @@ func Parse(path string) ([]pair, error) {
 				Values: values[:len(values)-1],
 			}
 
-			p.Img, err = getPicture(values[len(values)-1])
+			pictureFile, err := getPicture(values[len(values)-1])
 			if err != nil {
-				return data, err
+				log.Printf("Error al descargar imagen %s: %v\n", values[len(values)-1], err)
+			} else {
+				p.Img = pictureFile
 			}
 
 			data = append(data, p)
@@ -77,7 +82,7 @@ func Parse(path string) ([]pair, error) {
 }
 
 func getPicture(url string) (string, error) {
-	err := os.MkdirAll("test/dl", 777)
+	err := os.MkdirAll("temp/dl", 0777)
 	if err != nil {
 		return "", err
 	}
@@ -88,11 +93,13 @@ func getPicture(url string) (string, error) {
 		return "", nil
 	}
 
+	log.Printf("Descargando imagen %s\n", url)
+
 	id := s[1]
 
-	name := "dl/" + id + ".jpeg"
+	name := "temp/dl/" + id + ".jpeg"
 
-	file, err := os.Create("test/" + name)
+	file, err := os.Create(name)
 	if err != nil {
 		return "", err
 	}

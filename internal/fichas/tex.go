@@ -1,6 +1,7 @@
 package fichas
 
 import (
+	"log"
 	"os"
 	"os/exec"
 	"text/template"
@@ -13,13 +14,14 @@ type pair struct {
 }
 
 func Generate(path string, data []pair) error {
+	log.Println("Generando .tex")
 	funcMap := template.FuncMap{
 		"inc": func(a int) int {
 			return a + 1
 		},
 	}
 
-	t, err := template.New("t.tex").
+	t, err := template.New("template.tex").
 		Delims("[[", "]]").
 		Funcs(funcMap).
 		ParseFiles(path)
@@ -28,7 +30,7 @@ func Generate(path string, data []pair) error {
 		return err
 	}
 
-	f, err := os.OpenFile("test/res.tex", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
+	f, err := os.OpenFile("temp/res.tex", os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}
@@ -39,19 +41,7 @@ func Generate(path string, data []pair) error {
 		return err
 	}
 
-	// b, err := ioutil.ReadFile(f.Name())
-	// if err != nil {
-	// 	return err
-	// }
-
-	// b = bytes.ReplaceAll(b, []byte("<"), []byte("\\textit{"))
-	// b = bytes.ReplaceAll(b, []byte(">"), []byte("}"))
-
-	// _, err = f.Write(b)
-	// if err != nil {
-	// 	return err
-	// }
-
+	log.Println("Generando pdf")
 	exec.Command("pdflatex", "-interaction=nonstopmode", f.Name()).Run()
 
 	return nil
