@@ -2,8 +2,8 @@ package fichas
 
 import (
 	"context"
-	"io"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 
@@ -74,7 +74,7 @@ func Parse(path string) ([]pair, error) {
 				p.Img = pictureFile
 			}
 
-			data = append(data, p)
+			data = append(data, escapeRow(p))
 		}
 	}
 
@@ -99,22 +99,69 @@ func getPicture(url string) (string, error) {
 
 	name := "temp/dl/" + id + ".jpeg"
 
-	file, err := os.Create(name)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
+	// file, err := os.Create(name)
+	// if err != nil {
+	// 	return "", err
+	// }
+	// defer file.Close()
 
-	res, err := driveService.Files.Get(id).Download()
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
+	// res, err := driveService.Files.Get(id).Download()
+	// if err != nil {
+	// 	return "", err
+	// }
+	// defer res.Body.Close()
 
-	_, err = io.Copy(file, res.Body)
-	if err != nil {
-		return "", err
-	}
+	// _, err = io.Copy(file, res.Body)
+	// if err != nil {
+	// 	return "", err
+	// }
 
 	return name, nil
+}
+
+func escapeRow(row pair) pair {
+	for i, v := range row.Values {
+		row.Values[i] = escapeString(v)
+	}
+
+	return row
+}
+
+func escapeString(s string) string {
+	s = strings.ReplaceAll(s, `\`, `\textbackslash`)
+	s = strings.ReplaceAll(s, `&`, `\&`)
+	s = strings.ReplaceAll(s, `%`, `\%`)
+	s = strings.ReplaceAll(s, `$`, `\$`)
+	s = strings.ReplaceAll(s, `#`, `\#`)
+	s = strings.ReplaceAll(s, `_`, `\_`)
+	s = strings.ReplaceAll(s, `{`, `\{`)
+	s = strings.ReplaceAll(s, `}`, `\}`)
+	s = strings.ReplaceAll(s, `~`, `\textasciitilde`)
+	s = strings.ReplaceAll(s, `^`, `\textasciicircum`)
+	s = replaceQuotes(s)
+	s = strings.ReplaceAll(s, `<`, `\textit{`)
+	s = strings.ReplaceAll(s, `>`, `}`)
+
+	if _, err := url.ParseRequestURI(s); err == nil {
+		s = `\url{` + s + `}`
+	}
+
+	return s
+}
+
+func replaceQuotes(s string) string {
+	open := false
+	for _, r := range s {
+		if r == '"' {
+			if open {
+				s = strings.Replace(s, `"`, "''", 1)
+			} else {
+				s = strings.Replace(s, `"`, "``", 1)
+			}
+
+			open = !open
+		}
+	}
+
+	return s
 }
