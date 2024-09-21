@@ -19,7 +19,7 @@ import (
 var driveService *drive.Service
 
 func init() {
-	s, err := drive.NewService(context.Background(), option.WithServiceAccountFile("sa.json"))
+	s, err := drive.NewService(context.Background(), option.WithCredentialsFile("sa.json"))
 	if err != nil {
 		panic(err)
 	}
