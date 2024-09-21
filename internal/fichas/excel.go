@@ -5,9 +5,13 @@ import (
 	"log"
 	"net/url"
 	"os"
+	"os/exec"
 	"strings"
+	"sync/atomic"
+	"time"
 
 	"github.com/xuri/excelize/v2"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/drive/v3"
 	"google.golang.org/api/option"
 )
@@ -28,16 +32,42 @@ func init() {
 	}
 }
 
-func Parse(path string) ([]pair, error) {
+func Parse(path string) ([]*Pair, error) {
 	log.Println("Leyendo excel...")
 
-	data := []pair{}
+	data := []*Pair{}
 
 	f, err := excelize.OpenFile(path)
 	if err != nil {
 		return data, err
 	}
 	defer f.Close()
+
+	ctx := context.Background()
+
+	total := atomic.Int32{}
+	downloaded := atomic.Int32{}
+	wg, ctx := errgroup.WithContext(ctx)
+	wg.SetLimit(20)
+
+	go func() {
+		ticker := time.NewTicker(500 * time.Millisecond)
+
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				c := exec.Command("clear")
+				c.Stdout = os.Stdout
+				if err := c.Run(); err != nil {
+					log.Printf("Error running command: %v\n", err)
+				}
+				log.Printf("Descargando imágenes... %d/%d\n", downloaded.Load(), total.Load())
+			}
+		}
+	}()
 
 	for _, sheet := range f.GetSheetList() {
 		keys := []string{}
@@ -62,64 +92,39 @@ func Parse(path string) ([]pair, error) {
 				continue
 			}
 
-			p := pair{
+			p := &Pair{
 				Keys:   keys[:len(keys)-1],
 				Values: values[:len(values)-1],
 			}
 
-			pictureFile, err := getPicture(values[len(values)-1])
-			if err != nil {
-				log.Printf("Error al descargar imagen %s: %v\n", values[len(values)-1], err)
-			} else {
-				p.Img = pictureFile
-			}
+			go func(p *Pair, url string) {
+				total.Add(1)
+
+				wg.Go(func() error {
+					err = getPicture(ctx, p, values[len(values)-1])
+					if err != nil {
+						return err
+					}
+
+					downloaded.Add(1)
+					return nil
+				})
+			}(p, values[len(values)-1])
 
 			data = append(data, escapeRow(p))
 		}
+
+		if err := wg.Wait(); err != nil {
+			return nil, err
+		}
+
+		return data, nil
 	}
 
 	return data, nil
 }
 
-func getPicture(url string) (string, error) {
-	err := os.MkdirAll("temp/dl", 0777)
-	if err != nil {
-		return "", err
-	}
-
-	s := strings.Split(url, "id=")
-
-	if len(s) < 2 {
-		return "", nil
-	}
-
-	log.Printf("Descargando imagen %s\n", url)
-
-	id := s[1]
-
-	name := "temp/dl/" + id + ".jpeg"
-
-	// file, err := os.Create(name)
-	// if err != nil {
-	// 	return "", err
-	// }
-	// defer file.Close()
-
-	// res, err := driveService.Files.Get(id).Download()
-	// if err != nil {
-	// 	return "", err
-	// }
-	// defer res.Body.Close()
-
-	// _, err = io.Copy(file, res.Body)
-	// if err != nil {
-	// 	return "", err
-	// }
-
-	return name, nil
-}
-
-func escapeRow(row pair) pair {
+func escapeRow(row *Pair) *Pair {
 	for i, v := range row.Values {
 		row.Values[i] = escapeString(v)
 	}

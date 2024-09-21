@@ -7,13 +7,13 @@ import (
 	"text/template"
 )
 
-type pair struct {
+type Pair struct {
 	Keys   []string
 	Values []string
 	Img    string
 }
 
-func Generate(path string, data []pair) error {
+func Generate(path string, data []*Pair) error {
 	log.Println("Generando .tex")
 	funcMap := template.FuncMap{
 		"inc": func(a int) int {
