@@ -103,7 +103,7 @@ func Parse(path string) ([]*Pair, error) {
 				wg.Go(func() error {
 					err = getPicture(ctx, p, values[len(values)-1])
 					if err != nil {
-						return err
+						log.Printf("Error descargando imagen %s: %v\n", url, err)
 					}
 
 					downloaded.Add(1)

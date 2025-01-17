@@ -24,6 +24,12 @@ func getPicture(ctx context.Context, p *Pair, url string) error {
 
 	name := "temp/dl/" + id + ".jpeg"
 
+	stat, err := os.Stat(name)
+	if err == nil && stat.Size() > 0 {
+		p.Img = name
+		return nil
+	}
+
 	file, err := os.Create(name)
 	if err != nil {
 		return err
