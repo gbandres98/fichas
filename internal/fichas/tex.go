@@ -70,7 +70,10 @@ func generateFile(path string, data []*Pair, fileIndex int) error {
 		return err
 	}
 
-	exec.Command("pdflatex", "-interaction=nonstopmode", f.Name()).Run()
+	err = exec.Command("pdflatex", "-interaction=nonstopmode", f.Name()).Run()
+	if err != nil {
+		return err
+	}
 
 	log.Println("res-" + strconv.Itoa(fileIndex) + ".pdf")
 
