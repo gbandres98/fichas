@@ -14,19 +14,23 @@ type Pair struct {
 	Img    string
 }
 
-func Generate(path string, data []*Pair) error {
+func Generate(path string, data []*Pair, pagesPerFile int) error {
 	log.Println("Generando .tex")
 
 	fileNo := 0
 
-	for i := 0; i < len(data); i += 100 {
+	for i := 0; i < len(data); i += pagesPerFile {
 		fileNo++
 		var err error
 
-		if i+100 > len(data) {
+		if i >= len(data) {
+			break
+		}
+
+		if i+pagesPerFile > len(data) {
 			err = generateFile(path, data[i:], fileNo)
 		} else {
-			err = generateFile(path, data[i:i+100], fileNo)
+			err = generateFile(path, data[i:i+pagesPerFile], fileNo)
 		}
 
 		if err != nil {

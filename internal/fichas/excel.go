@@ -4,12 +4,9 @@ import (
 	"context"
 	"log"
 	"net/url"
-	"os"
-	"os/exec"
 	"strings"
-	"sync/atomic"
-	"time"
 
+	"github.com/schollz/progressbar/v3"
 	"github.com/xuri/excelize/v2"
 	"golang.org/x/sync/errgroup"
 	"google.golang.org/api/drive/v3"
@@ -45,29 +42,10 @@ func Parse(path string) ([]*Pair, error) {
 
 	ctx := context.Background()
 
-	total := atomic.Int32{}
-	downloaded := atomic.Int32{}
 	wg, ctx := errgroup.WithContext(ctx)
 	wg.SetLimit(20)
 
-	go func() {
-		ticker := time.NewTicker(500 * time.Millisecond)
-
-		for {
-			select {
-			case <-ctx.Done():
-				ticker.Stop()
-				return
-			case <-ticker.C:
-				c := exec.Command("clear")
-				c.Stdout = os.Stdout
-				if err := c.Run(); err != nil {
-					log.Printf("Error running command: %v\n", err)
-				}
-				log.Printf("Descargando imágenes... %d/%d\n", downloaded.Load(), total.Load())
-			}
-		}
-	}()
+	bar := progressbar.Default(0)
 
 	for _, sheet := range f.GetSheetList() {
 		keys := []string{}
@@ -98,7 +76,7 @@ func Parse(path string) ([]*Pair, error) {
 			}
 
 			go func(p *Pair, url string) {
-				total.Add(1)
+				bar.AddMax(1)
 
 				wg.Go(func() error {
 					err = getPicture(ctx, p, values[len(values)-1])
@@ -106,7 +84,7 @@ func Parse(path string) ([]*Pair, error) {
 						log.Printf("Error descargando imagen %s: %v\n", url, err)
 					}
 
-					downloaded.Add(1)
+					_ = bar.Add(1)
 					return nil
 				})
 			}(p, values[len(values)-1])
